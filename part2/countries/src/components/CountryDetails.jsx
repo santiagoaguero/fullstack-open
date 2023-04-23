@@ -1,4 +1,7 @@
+
 const CountryDetails = ({country}) => {
+
+
   return(<>
     <h1>{country.name.common}</h1>
     <p>Capital: {country.capital}</p>
