@@ -1,83 +1,138 @@
-import React, { useState, useEffect } from 'react'
-import Content from './components/Content'
-import axios from 'axios'
-import servicePerson from "./services/persons"
-import Form from './components/Form'
+import React, { useEffect, useState } from 'react'
+import Persons from './components/Persons'
+import PersonForm from './components/PersonForm'
+import Filter from "./components/Filter"
+import personService from "./services/persons"
+import Notification from './components/Notification'
+import "./index.css"
 
-const App = () => {
-  const [ persons, setPersons ] = useState([]) 
-  const [ newName, setNewName ] = useState('')
-  const [ newNumber, setNewNumber ] = useState('')
-  const [allPersons, setAllPersons] = useState([])
-  
-
-  useEffect(() => {
-    servicePerson
-      .getAll()
-      .then(initialPersons => {
-      setAllPersons(initialPersons)
-    })
-  }, [])
+  const App = () => {
+    const [ persons, setPersons ] = useState([]) 
+    const [ newName, setNewName ] = useState('')
+    const [newNumber, setNewNumber] = useState('')
+    const [newFilter, setNewFilter] = useState('')
+    const [filteredPersons, setFilteredPersons] = useState([])
+    const [errorMessage, setErrorMessage] = useState(null);
 
 
+    useEffect(()=>{
+      personService
+        .getAll()
+        .then(initialPersons=> {
+          setPersons(initialPersons)
+        })
+    }, [])
 
-  const handleName = (evt) => {
-    setNewName(evt.target.value);
-  }
 
-  const handleNumber = (evt) => {
-    setNewNumber(evt.target.value);
-  }
 
-  const handleClick = (evt) => {
-    evt.preventDefault()
-    const person = allPersons.filter((a) =>
-        a.name === newName
 
-    )
-    const personObject = person[0]
-    const updatedPerson = { ...personObject, number: newNumber }
+    const addPerson = (event) => {
+      event.preventDefault()
 
-    if (person.length !== 0) {
-      if (window.confirm(`${personObject.name} is already added to the phonebook, replace the old number with a new one ?`)) {
-        servicePerson
-          .update(updatedPerson.id, updatedPerson).then(returnedPerson => {
-            console.log(`${returnedPerson.name} successfully updated`)
-            setAllPersons(allPersons.map(x => x.id !== personObject.id ? x : returnedPerson))
-          })
-          .catch(() => {
-            alert(`${personObject.name} was already deleted from server` )
-          })
-      }
-    } else {
-        const personObject = {
-            name: newName,
+      const findPerson = persons.find(x => x.name === newName)
+
+      if(findPerson){
+        const updateNumber = window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)
+        if (updateNumber){
+          const personObject = {...findPerson,
             number: newNumber
           }
-          servicePerson
-            .create(personObject)
-            .then(returnedPerson => {
-              setAllPersons(allPersons.concat(returnedPerson))
-              setNewName('')
-              setNewNumber('')
-      })
-  }
-}
+          console.log("updated", personObject)
+          personService
+          .update(findPerson.id, personObject)
+          .then(numberChanged =>{
+            setPersons(persons.map(x => x.id !== numberChanged.id ? x : numberChanged))
+            setNewName('')
+            setNewNumber('')
+
+            setErrorMessage({
+              notification: `Updated number for ${findPerson.name}`
+            });
+            setTimeout(() => {
+              setErrorMessage(null);
+            }, 5000);
+          })
+          .catch(error => {
+            setErrorMessage({
+              error: `Information for ${findPerson.name} has already been removed from server`
+            });
+            setPersons(persons.filter(x => x.id !== numberChanged.id));
+            setTimeout(() => {
+              setErrorMessage(null);
+            }, 5000);
+          });
+        }
+      
+      } 
+       else {
+        const personObject = {
+          name: newName,
+          number: newNumber
+        }
+        personService
+        .create(personObject)
+        .then(newPerson =>{
+          setPersons(persons.concat(newPerson))
+          setNewName('')
+          setNewNumber('')
+
+          setErrorMessage({ notification: `Added ${newPerson.name}` });
+          setTimeout(() => {
+            setErrorMessage(null);
+          }, 5000);
+        } )
+      }
+    }
+
+  const handleName = evt => setNewName(evt.target.value)
+
+  const handleNumber = evt => setNewNumber(evt.target.value)
+
+  const handleFilter = (evt) => {
+    setNewFilter(evt.target.value)
+    const filtered = persons.filter(x =>
+      x.name.toLowerCase().includes(evt.target.value.toLowerCase()))
+
+      setFilteredPersons(filtered);
+    };
+
+
+    const handleRemove = (id) =>{
+      const remove = persons.find(x => x.id === id)
+      if(remove) {
+        const confirmDelete = window.confirm(`Delete ${remove.name}?`)
+          if(confirmDelete){
+            personService
+            .remove(remove.id)
+            .then(() =>{
+            const cleanPersons = persons.filter(x => x.id !== id);
+            setPersons(cleanPersons) })
+          }
+      } 
+    }
+    
   
-
-
-  return (
-    <div>
-      <h2>Phonebook</h2>
-      <Form onSubmit={handleClick}
-      newName={newName} handleName={handleName} 
-      newNumber={newNumber} handleNumber={handleNumber}
-      />
-      <h2>Numbers</h2>
-      <Content persons={persons} allPersons={allPersons} setAllPersons={setAllPersons} />
-
-    </div>
-  )
+    return (
+      <div>
+        <h2>Phonebook</h2>
+        <Notification
+        message={
+          errorMessage?.notification || errorMessage?.error
+        }
+        className={errorMessage?.notification ? "notification" : "error"} />
+        <Filter value={newFilter} onChange={handleFilter} />
+        <h2>add a new</h2>
+        <PersonForm onSubmit={addPerson} 
+        newName={newName} handleName={handleName}
+        newNumber={newNumber} handleNumber={handleNumber} />
+        <h2>Numbers</h2>
+        <Persons
+        persons={persons} 
+        filteredPersons={filteredPersons} 
+        filter={newFilter} 
+        remove={handleRemove}/>
+      </div>
+    )
 }
 
 export default App
