@@ -24,8 +24,6 @@ import "./index.css"
     }, [])
 
 
-
-
     const addPerson = (event) => {
       event.preventDefault()
 
@@ -37,7 +35,6 @@ import "./index.css"
           const personObject = {...findPerson,
             number: newNumber
           }
-          console.log("updated", personObject)
           personService
           .update(findPerson.id, personObject)
           .then(numberChanged =>{
@@ -81,6 +78,15 @@ import "./index.css"
             setErrorMessage(null);
           }, 5000);
         } )
+        .catch(error2 => {
+          //console.log(error2.response.data)
+          setErrorMessage({
+            error: error2.response.data.error
+          })
+        });
+        setTimeout(() => {
+          setErrorMessage(null);
+        }, 5000);
       }
     }
 
