@@ -1,3 +1,18 @@
+const Blog = require('../models/blog');
+
+
+const initialBlogs = [
+    {   title: "el mas loco de todos los tiempos",
+        author: "Boris Chel",
+        url: "www.boris-loco.com",
+        likes: 7},
+    {   title: "Dejenme dormir loco",
+        author: "Rufo Luis",
+        url: "bloggers.com/rufo",
+        likes: 3}
+]
+
+
 const dummy = (blogs) =>{
     if (blogs.length === 0){
         return 1
@@ -21,11 +36,10 @@ const favoriteBlog = (blogs) => {
 }
 
 
+const blogsInDb = async () => {
+  const blogs = await Blog.find({});
+  return blogs.map(blog => blog.toJSON());
+};
 
 
-
-
-
-
-
-module.exports = {dummy,totalLikes, favoriteBlog}
+module.exports = {dummy, totalLikes, favoriteBlog, blogsInDb, initialBlogs}
