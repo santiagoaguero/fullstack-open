@@ -89,10 +89,14 @@ test("check title & url props exist", async () =>{
         author: "Coolio",
         likes: 3
     }
-    await api
+  await api
     .post('/api/blogs')
     .send(badFormattedBlog)
     .expect(400)
+
+  const blogsAtEnd = await helper.blogsInDb()
+
+  expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
 })
 
 afterAll(() => {
